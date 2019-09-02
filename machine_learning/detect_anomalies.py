@@ -13,26 +13,11 @@ from sklearn.preprocessing import MinMaxScaler
 
 from use_postgres import UseDatabase
 
-# conn = create_engine('postgresql+psycopg2://awsuser:Lovesaws22@my-aurora-test.cynbkpreeybn.eu-west-1.rds.amazonaws.com/awsuser')
-# conn = create_engine('postgresql+psycopg2://grow_user:ILoveGROW@grow-data-instance-1.cynbkpreeybn.eu-west-1.rds.amazonaws.com/postgres')
-
-# grow_data_fzja2fbn ERRORS because it only has 4 rows, and the 96 remainder operations puts the len(df) to zero
-
-# aurora_creds = {
-#         'host': 'grow-data-instance-1.cynbkpreeybn.eu-west-1.rds.amazonaws.com',
-#         'port': 5432,
-#         'dbname': 'postgres',
-#         'user': 'grow_user',
-#         'password': 'ILoveGROW'
-#     }
-
 def get_grow_tables_to_analyse(aurora_creds: dict) -> np.ndarray:
     """Return all GROW table names from AWS Aurora DB that have
     not been analysed, or GROW tables with new data that 
     has not yet been analysed.
     """
-    # all_tables_array = pd.read_sql(sql_all, conn).values
-    # anom_tables_array = pd.read_sql(sql_anom, conn).values
     with UseDatabase(aurora_creds) as cursor:
         # Fetch all grow data table names
         sql_all = """SELECT table_name 
@@ -81,6 +66,10 @@ def get_keras_models() -> '3 Keras Models':
     return soil_model, light_model, air_model
 
 def predict_df_length_check(table_name: str, conn):
+    """Retrieve GROW data from GROW table, convert it 
+    to a DataFrame divisible by 96. Declare whether the
+    DataFrame has over 96 observations.
+    """
     sql_select = f"""SELECT * FROM {table_name}"""
     analyse_datetime = datetime.datetime.now()
     df = pd.read_sql(sql_select, conn, parse_dates=['datetime'])
@@ -100,7 +89,7 @@ def predict_df_length_check(table_name: str, conn):
 
 def construct_predict_dfs(predict_df: pd.DataFrame) -> Tuple[pd.DataFrame,pd.DataFrame,pd.DataFrame,np.ndarray]:
     """Construct 3 DataFrames and one Numpy array from the contents of 
-    a GROW table stored in AWS Aurora. These DataFrames will be 
+    previously created DataFrame. These DataFrames will be 
     analysed against the Keras models previously built to 
     detect anomalies/anomalous data.
     """
@@ -171,12 +160,6 @@ def analyse_soil_error(mse_soil: np.ndarray, predict_dates: np.ndarray) -> List:
             anomalous_results.append([mse[0], predict_dates[index][0][0]])
     return anomalous_results
 
-    # anomalous_results = []
-    # for index, mse in enumerate(mse_soil):
-    #     if mse[0] > 1.00e-04:
-    #         anomalous_results.append([mse[0], predict_dates[index][0][0]])
-    # return anomalous_results
-
 def analyse_light_error(mse_light: np.ndarray, predict_dates: np.ndarray) -> List:
     """Loop through light reconsruction error array. If error is 
     identical twice in a row, flag as anomaly. Record error and 
@@ -190,7 +173,7 @@ def analyse_light_error(mse_light: np.ndarray, predict_dates: np.ndarray) -> Lis
 
 def analyse_air_error(mse_air: np.ndarray, predict_dates: np.ndarray) -> List:
     """Loop through air reconsruction error array. If error is 
-    identical for more than 3 times, flag as anomaly. Record error and 
+    identical twice in a row, flag as anomaly. Record error and 
     its respective datetime in result array.
     """
     anomalous_results = []
@@ -258,7 +241,6 @@ def main(aurora_host: str, db_name: str, aurora_username: str, aurora_password: 
     Stores anomalous findings (datetimes of anomalies)
     in AWS Aurora 'grow_anomalies' table.
     """
-    # conn = create_engine('postgresql+psycopg2://grow_user:ILoveGROW@grow-data-instance-1.cynbkpreeybn.eu-west-1.rds.amazonaws.com/postgres')
     conn = create_engine(f'postgresql+psycopg2://{aurora_username}:{aurora_password}@{aurora_host}/{db_name}')
     aurora_creds = {
         'host': aurora_host,
