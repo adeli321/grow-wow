@@ -1,0 +1,8 @@
+Flask==1.0.2
+MarkupSafe==1.0
+Jinja2==2.10
+Flask-Cors==3.0.8
+requests==2.19.1
+psycopg2==2.7.6.1
+psycopg2-binary==2.7.6.1
+simplejson==3.16.0
