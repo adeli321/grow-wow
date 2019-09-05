@@ -1,15 +1,19 @@
 #!/usr/bin/env python3
 
+import ast
 import argparse
+import base64
 import datetime
 from typing import List, Tuple
 
+import boto3
 import numpy as np
 import pandas as pd
-from psycopg2 import sql
-from sqlalchemy import create_engine
+from botocore.exceptions import ClientError
 from keras.models import load_model
+from psycopg2 import sql
 from sklearn.preprocessing import MinMaxScaler
+from sqlalchemy import create_engine
 
 from use_postgres import UseDatabase
 
@@ -60,9 +64,9 @@ def get_grow_tables_to_analyse(aurora_creds: dict) -> np.ndarray:
 
 def get_keras_models() -> '3 Keras Models':
     """Retrieve previously trained Keras models for anomaly detection"""
-    soil_model = load_model('saved_models/soil_model.h5')
-    light_model = load_model('saved_models/light_model.h5')
-    air_model = load_model('saved_models/air_model.h5')
+    soil_model = load_model('soil_model.h5')
+    light_model = load_model('light_model.h5')
+    air_model = load_model('air_model.h5')
     return soil_model, light_model, air_model
 
 def predict_df_length_check(table_name: str, conn):
@@ -236,19 +240,55 @@ def insert_anomalies(soil_anomalies: List, light_anomalies: List,
                                     sql.Literal(analyse_datetime))
             cursor.execute(sql_insert)
 
-def main(aurora_host: str, db_name: str, aurora_username: str, aurora_password: str):
+def get_aurora_secret():
+    """Retrieve AWS RDS Aurora credentials from AWS Secrets Manager"""
+    secret_name = "grow-data-key"
+    region_name = "eu-west-1"
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            raise e
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            raise e
+    else:
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            secret = ast.literal_eval(secret)
+            return secret
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+            return decoded_binary_secret
+
+def main():
     """Scans through all GROW data to find anomalies. 
     Stores anomalous findings (datetimes of anomalies)
     in AWS Aurora 'grow_anomalies' table.
     """
-    conn = create_engine(f'postgresql+psycopg2://{aurora_username}:{aurora_password}@{aurora_host}/{db_name}')
+    aurora_secret = get_aurora_secret()
     aurora_creds = {
-        'host': aurora_host,
-        'port': 5432,
-        'dbname': db_name,
-        'user': aurora_username,
-        'password': aurora_password
+        'host': aurora_secret['host'],
+        'port': aurora_secret['port'],
+        'dbname': aurora_secret['engine'],
+        'user': aurora_secret['username'],
+        'password': aurora_secret['password']
     }
+    conn = create_engine(f"postgresql+psycopg2://{aurora_secret['username']}:{aurora_secret['password']}@{aurora_secret['host']}/{aurora_secret['engine']}")
+
     tables_to_analyse = get_grow_tables_to_analyse(aurora_creds)
     soil_model, light_model, air_model = get_keras_models()
     for table in tables_to_analyse:
@@ -266,11 +306,5 @@ def main(aurora_host: str, db_name: str, aurora_username: str, aurora_password: 
                         aurora_creds, analyse_datetime)
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
-    parser.add_argument('aurora_host')
-    parser.add_argument('db_name')
-    parser.add_argument('aurora_username')
-    parser.add_argument('aurora_password')
-    args = parser.parse_args()
-    main(args.aurora_host, args.db_name, args.aurora_username, args.aurora_password)
+    main()
 
