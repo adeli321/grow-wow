@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Circles</title>
+    <style>
+      #map {
+        height: 90%;
+        width: 50%;
+        float: right;
+      }
+      #texty {
+          float: left;
+          position: absolute;
+          top: 120px;
+          padding-left: 45px;
+          padding-right: 45px;
+          background-color: rgba(53, 167, 68, 0.9);
+          font-size: 20px;
+          color: #000000;
+          font-family: "Noto Sans", sans-serif;
+      }
+      #small_text {
+        font-size: 14px;
+      }
+      .button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 8px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 12px;
+        }
+      #grow_anomaly_date {
+        clear: both;    
+      }
+      #grow_health_status {
+        clear: both;
+      }
+      
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #grow_line_chart {
+          clear: both;
+          float: center;
+          position: relative;
+          margin-top:10px;
+      }
+      .ui-autocomplete {
+        overflow: auto;
+        border: 1px solid #CBD3DD;
+        background: #FFF;
+        position: absolute;
+        }
+      .bold-green-font {
+        font-weight: bold;
+        color: green;
+        }
+
+      .bold-font {
+        font-weight: bold;
+        }
+
+      .right-text {
+        text-align: right;
+        }
+
+      .large-font {
+        font-size: 15px;
+        }
+
+      .italic-darkblue-font {
+        font-style: italic;
+        color: darkblue;
+        }
+
+      .italic-purple-font {
+        font-style: italic;
+        color: purple;
+        }
+
+      .underline-blue-font {
+        text-decoration: underline;
+        color: blue;
+        }
+
+      .gold-border {
+        border: 3px solid gold;
+        }
+
+      .deeppink-border {
+        border: 3px solid deeppink;
+        }
+
+      .orange-background {
+        background-color: orange;
+        }
+
+      .orchid-background {
+        background-color: orchid;
+        }
+
+      .beige-background {
+        background-color: beige;
+        }
+    </style>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript"></script>
+  </head>
+  <body style="background-image:url('https://metofficenews.files.wordpress.com/2016/08/vc-northern-hemisphere.png');">
+    <p id="space"></p>
+    <img src="static/images/grow_logo.jpg" alt="GROW logo" style="float:left;width:233px;height:100px;">
+    <img src="static/images/wow_logo.png" alt="WOW logo" style="float:left;width:233px;height:100px;">
+    <img src="static/images/eu_flag.png" alt="EU flag" style="float:left;width:233px;height:100px;">
+    <form action="/login" method="get">
+        <button name="Back to Main Page" type="submit" class="button" style="float: right;">Back to Main Page</button>
+    </form><br>
+    <div id="texty">    
+    <p>Search your GROW sensor by typing in the sensor's address: <br>
+        <input name="autocomplete" type="text" id="autocomplete" class="form-control input-lg"/></p>
+        <input type="submit" value="Plot Address" onclick="getGrowByAddress()" class="button"><br>
+    <p>Click on sensor icon to populate the Owner Id</p>
+    <p>GROW owner id: <input id="owner_id" type="text" name="owner_id">
+    <input type="submit" value="Plot all sensors that I own" onclick="getGrowByOwner()" class="button"></p>
+
+    <input type="submit" onclick="getOwnerStats()" value="Show GROW Owner Statistics" class="button"><br>
+    <input type="submit" onclick="getHealthySensors()" value="Show Healthy Sensor Statistics" class="button"><br>
+    <input type="submit" onclick="getRecoveredSensors()" value="Show Recovered State Sensor Statistics" class="button"><br>
+    <input type="submit" onclick="getFaultySensors()" value="Show Faulty Sensor Statistics" class="button">
+    <br>
+
+    GROW sensor id:
+    <input id="sensor_id" type="text" name="number_towns"><br>
+    Start: 
+    <input id="start_date" type="text" name="number_towns">
+    End: 
+    <input id="end_date" type="text" name="number_towns"><br>
+    <div id="small_text">Start date and End date (max 9 day range) <br>
+    must be in format of year-mo-daThr:mn:sc</div>
+    <input type="submit" onclick="getGrowData(),checkGrowFaults(),getWowData()" value="Get GROW & WOW Data" class="button"><br></div>
+    <div id="map"></div> 
+    
+    <p id="demo"></p> 
+    <div id="grow_health_data_1"></div>
+    <div id="grow_health_data_2"></div>
+    <div id="grow_health_status"></div>
+    <div id="grow_anomaly_date"></div>
+    
+    <input type="submit" onclick="clearBox('grow_line_chart'),clearBox('wow_line_chart'),
+                                clearBox('grow_wow_temp_chart'),clearBox('grow_wow_rainfall_chart')" value="Clear Charts" style="float: right;" class="button">
+    <input type="submit" onclick="clearBox('owner_stats_table'),clearBox('healthy_stats_table'),
+                        clearBox('recovered_stats_table'),clearBox('faulty_stats_table')" value="Clear Tables" style="float: right;" class="button">
+
+    <div id="grow_line_chart"></div>
+    <div id="wow_line_chart"></div>
+    <div id="grow_wow_temp_chart"></div>
+    <div id="grow_wow_rainfall_chart"></div>
+    <div id="owner_stats_table"></div><br>
+    <div id="healthy_stats_table"></div>
+    <div id="recovered_stats_table"></div>
+    <div id="faulty_stats_table"></div>
+
+    <!-- Jquery & Javascript scripts to reference -->
+    <script type="text/javascript" src="static/javascript/jquery-3.3.1.js"></script>
+    <script type="text/javascript" src="static/javascript/owner_map.js"></script>
+    <script src="//code.jquery.com/ui/1.12.0/jquery-ui.js" ></script>
+    
+    <!-- I use an API key created from my GCloud account to 
+        allow Google Maps API usage -->
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={}&callback=initMap">
+    </script>
+  </body>
+</html>

@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Circles</title>
+    <style>
+      #text {
+          float: center;
+          position: relative;
+          /* top: 120px; */
+          /* left: 50px; */
+          /* top: 0;
+          left: 0; */
+          padding-left: 45px;
+          padding-right: 45px;
+          background-color: rgba(53, 167, 68, 0.0);
+          font-size: 24px;
+          /* opacity: 0.1; */
+          color: white;
+          /* #764610 */
+          font-family: "Noto Sans", sans-serif;
+          text-align: center;
+      }
+      #subtitle {
+        float:right;
+        position: absolute;
+        padding-top: 110px;
+        padding-left: 1100px;
+        font-family: "Noto Sans", sans-serif;
+        color:white;
+        display:block;
+      }
+      .button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 8px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 12px;
+        }
+    </style>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript"></script>
+  </head>
+  <body style="background-image:url('https://metofficenews.files.wordpress.com/2016/08/vc-northern-hemisphere.png');">
+
+    <img src="static/images/grow_logo.jpg" alt="GROW logo" style="float:left;width:256px;height:100px;">
+    <img src="static/images/wow_logo.png" alt="WOW logo" style="display:block;position:absolute;float:left;width:256px;height:100px;padding-top:100px;">
+    <img src="static/images/eu_flag.png" alt="EU flag" style="float:right;width:256px;height:100px;"><br>
+    <div id="subtitle">This project has received funding from the European Union’s Horizon 2020 
+        Research and Innovation Programme under grant agreement No 690199.</div>
+
+      <div id="text"><p>Number of live GROW sensors: {{number_sensors}}</p>
+      <form method="get" action="/all_grow_map">
+        <button type="submit" class="button">Show me all GROW sensors</button>
+      </form>
+      <p>Number of GROW Owners: {{number_owners}}</p>
+      <form method="get" action="/owner_map">
+        <button type="submit" class="button">Filter GROW sensors by Owner</button>
+      </form></div>
+  </body>
+</html>

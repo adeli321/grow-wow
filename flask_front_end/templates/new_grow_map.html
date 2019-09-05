@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Circles</title>
+    <style>
+      #map {
+        height: 90%;
+        width: 50%;
+        float: right;
+      }
+      #texty {
+          float: left;
+          position: absolute;
+          top: 120px;
+          padding-left: 45px;
+          padding-right: 45px;
+          background-color: rgba(53, 167, 68, 0.9);
+          font-size: 24px;
+          color: #000000;
+          font-family: "Noto Sans", sans-serif;
+          text-align: center;
+      }
+      #small_text {
+        font-size: 14px;
+      }
+      .health_status {
+        float: left;
+        position:relative;
+        background-color: rgba(53, 167, 68, 0.9);
+        color: #764610;
+        font-size: 24px;
+      }
+      .button {
+        background-color: #4CAF50;
+        border: none;
+        color: white;
+        padding: 8px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        cursor: pointer;
+        border-radius: 12px;
+        }
+      #grow_anomaly_date {
+        clear: both;    
+      }
+      #grow_health_status {
+        clear: both;
+      }
+      #grow_line_chart {
+        padding-top: 40px;
+        display: block;
+        margin: 0 auto;
+        text-align: center;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #grow_line_chart
+        {
+          clear: both;
+          float: center;
+          position: relative;
+          margin-top:10px;
+      }
+    </style>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script type="text/javascript"></script>
+  </head>
+  <body style="background-image:url('https://metofficenews.files.wordpress.com/2016/08/vc-northern-hemisphere.png');">
+    <p id="space"></p>
+
+    <img src="static/images/grow_logo.jpg" alt="GROW logo" style="float:left;width:233px;height:100px;">
+    <img src="static/images/wow_logo.png" alt="WOW logo" style="float:left;width:233px;height:100px;">
+    <img src="static/images/eu_flag.png" alt="EU flag" style="float:left;width:233px;height:100px;">
+    <form action="/login" method="get">
+        <button name="Back to Main Page" type="submit" class="button" style="float: right;">Back to Main Page</button>
+    </form><br>
+
+    <div id="texty">
+    <p>GROW Sensor Global Summary</p>
+    <p>Total GROW Sensors: {{number_sensors}}<br>
+        <input type="submit" onclick="getSensorData()" value="Plot All GROW Sensors" class="button"></p>
+    <p>Healthy Sensors: {{healthy_sensors}}<br>
+        <input type="submit" onclick="getHealthyData()" value="Plot Healthy GROW Sensors" class="button"></p>
+    <p>Recovered Sensors: {{recovered_sensors}}<br>
+        <input type="submit" onclick="getRecoveredData()" value="Plot Recovered GROW Sensors" class="button"></p>
+    <p>Faulty Sensors: {{faulty_sensors}}<br>
+        <input type="submit" onclick="getFaultyData()" value="Plot Faulty GROW Sensors" class="button"></p>
+    
+    GROW sensor id:
+    <input id="sensor_id" type="text" name="number_towns"><br>
+    Start: 
+    <input id="start_date" type="text" name="number_towns">
+    End: 
+    <input id="end_date" type="text" name="number_towns"><br>
+    <div id="small_text">Start date and End date (max 9 day range) <br>
+    must be in format of year-mo-daThr:mn:sc</div>
+    <input type="submit" onclick="getGrowData(),checkGrowFaults(),getWowData()" value="Get GROW & WOW Data" class="button"><br>
+
+    <div id="grow_health_status"></div></div>
+
+    <div id="map"></div> 
+
+    <div id="grow_health_status"></div>
+    <div id="grow_anomaly_date"></div>
+    <input type="submit" onclick="clearBox('grow_line_chart'),clearBox('wow_line_chart'),
+                                        clearBox('grow_wow_temp_chart'),clearBox('grow_wow_rainfall_chart')" 
+                                        value="Clear Charts" style="float: right;" class="button">
+
+    <div id="grow_line_chart"></div>
+    <div id="wow_line_chart"></div>
+    <div id="grow_wow_temp_chart"></div>
+    <div id="grow_wow_rainfall_chart"></div>
+
+    <!-- Jquery & Javascript scripts to reference -->
+    <script type="text/javascript" src="static/javascript/jquery-3.3.1.js"></script>
+    <script type="text/javascript" src="static/javascript/grow_map.js"></script>
+    
+    <!-- I use an API key created from my GCloud account to 
+        allow Google Maps API usage -->
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key={}&callback=initMap">
+    </script>
+  </body>
+</html>
