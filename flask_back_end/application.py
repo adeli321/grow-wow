@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
 
+import ast
 import os
+import base64
 from typing import List
 
+import boto3
+from botocore.exceptions import ClientError
 import requests
 from psycopg2 import sql
 from flask_cors import CORS, cross_origin
@@ -14,18 +18,126 @@ application = Flask(__name__)
 app = application
 CORS(app)
 
-aurora_host = os.environ.get('aurora_host')
-db_name = os.environ.get('db_name')
-aurora_username = os.environ.get('aurora_username')
-aurora_password = os.environ.get('aurora_password')
+@app.before_first_request
+def before_first_request():
+    """Retrieve secret credentials for AWS RDS Aurora Database,
+    GROW Thingful API & Met Office WOW API from AWS Secrets Manager.
+    """
+    secret_name = "grow-data-key"
+    region_name = "eu-west-1"
+    # Create a Secrets Manager client
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    # Rethrow the exception by default.
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            # Secrets Manager can't decrypt the protected secret text using the provided KMS key.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            # An error occurred on the server side.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            # You provided an invalid value for a parameter.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            # You provided a parameter value that is not valid for the current state of the resource.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            # We can't find the resource that you asked for.
+            # Deal with the exception here, and/or rethrow at your discretion.
+            raise e
+    else:
+        # Decrypts secret using the associated KMS CMK.
+        # Depending on whether the secret is a string or binary, one of these fields will be populated.
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            # Convert string to dictionary to later access secret values
+            aurora_secret = ast.literal_eval(secret)
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
 
-aurora_creds = {
-    'host': aurora_host,
-    'port': 5432,
-    'dbname': db_name,
-    'user': aurora_username,
-    'password': aurora_password
-}
+    # Retrieve secret credentials for GROW Thingful API
+    secret_name = "grow-api"
+    region_name = "eu-west-1"
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            raise e
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            raise e
+    else:
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            global grow_api_secret
+            grow_api_secret = ast.literal_eval(secret)
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+
+    # Retrieve secret credentials for Met Office WOW API
+    secret_name = "wow-api"
+    region_name = "eu-west-1"
+    session = boto3.session.Session()
+    client = session.client(
+        service_name='secretsmanager',
+        region_name=region_name
+    )
+    try:
+        get_secret_value_response = client.get_secret_value(
+            SecretId=secret_name
+        )
+    except ClientError as e:
+        if e.response['Error']['Code'] == 'DecryptionFailureException':
+            raise e
+        elif e.response['Error']['Code'] == 'InternalServiceErrorException':
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidParameterException':
+            raise e
+        elif e.response['Error']['Code'] == 'InvalidRequestException':
+            raise e
+        elif e.response['Error']['Code'] == 'ResourceNotFoundException':
+            raise e
+    else:
+        if 'SecretString' in get_secret_value_response:
+            secret = get_secret_value_response['SecretString']
+            global wow_api_secret
+            wow_api_secret = ast.literal_eval(secret)
+        else:
+            decoded_binary_secret = base64.b64decode(get_secret_value_response['SecretBinary'])
+
+    global aurora_creds
+    aurora_creds = {
+            'host': aurora_secret['host'],
+            'port': aurora_secret['port'],
+            'dbname': aurora_secret['engine'],
+            'user': aurora_secret['username'],
+            'password': aurora_secret['password']
+        }
+    return aurora_creds, grow_api_secret, wow_api_secret
 
 @app.route('/api/all_grow_true_json')
 @cross_origin()
@@ -103,7 +215,7 @@ def get_me_grow() -> 'JSON':
     end = request.args.get('end', None)
     end = end.replace('-','').replace('T','').replace(':','')
     sensor_id = request.args.get('sensor_id', None)
-    header = {'Authorization': ''}
+    header = grow_api_secret
     url = 'https://grow.thingful.net/api/timeSeries/get'
     payload = {'Readers': [{'DataSourceCode': 'Thingful.Connectors.GROWSensors',
                             'Settings': 
@@ -142,7 +254,7 @@ def get_me_wow() -> 'JSON':
     start = request.args.get('start', None)
     end = request.args.get('end', None)
     wow_site_id, distance = match_wow_site(sensor_id)
-    header = {'Ocp-Apim-Subscription-Key': ''}
+    header = wow_api_secret
     url = 'https://apimgmt.www.wow.metoffice.gov.uk/api/observations/byversion'
     payload = {'site_id': wow_site_id,
             'start_time': start, # 2019-05-24T20:00:00
