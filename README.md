@@ -92,6 +92,8 @@ API keys for the GROW Thingful and Met Office WOW APIs to get data.
         6. Edit scripts to include the new secret_name and region_name in the get_secret functions
     2. Store GROW API key
         1. Same steps, except manually enter API key and value to AWS Secrets Manager
+    3. Store WOW API key
+        1. Same steps, except manually enter API key and value to AWS Secrets Manager
         
 
 
