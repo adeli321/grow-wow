@@ -66,10 +66,12 @@ def create_training_dataframes(conn) -> Tuple[pd.DataFrame,pd.DataFrame,pd.DataF
     timesteps = 96
     dim = 1
     samples = len(new_df_soil_scaled)
+
     # Reshape data for fit to neural network model
     new_df_soil_scaled.shape = (int(samples/timesteps),timesteps,dim)
     new_df_light_scaled.shape = (int(samples/timesteps),timesteps,dim)
     new_df_air_scaled.shape = (int(samples/timesteps),timesteps,dim)
+    
     return new_df_soil_scaled, new_df_light_scaled, new_df_air_scaled
 
 def create_models() -> Tuple[Model, Model, Model]:
